@@ -277,6 +277,11 @@ class PER(ASN1.ASN1Codec):
     # CODEC customizations:
     # to build dictionnary for encoded ENUMERATED, CHOICE, ...
     _ENUM_BUILD_DICT = True
+
+    # add specific option in order to choose displaying ASN1 code or string
+    # label for enum and choice type
+    _DISPLAY_LABEL = True
+
     # to pad BIT STRING with CONTAINING object to octet-align it
     _U_BITSTR_CONTAIN_PAD = True
     #
@@ -1413,7 +1418,12 @@ class PER(ASN1.ASN1Codec):
         if ind >= root_num:
             raise(ASN1_PER_DECODER('%s: invalid enumerated index (%s)'\
                   % (obj.get_fullname(), ind)))
-        obj._val = obj._cont.keys()[ind]
+
+        if self._DISPLAY_LABEL :
+            obj._val = obj._cont.keys()[ind]
+        else:
+            obj._val = obj._cont[obj._cont.keys()[ind]]
+
         return buf
     
     #--------------------------------------------------------------------------#
@@ -1637,6 +1647,8 @@ class PER(ASN1.ASN1Codec):
                 return self._decode_choice_ext(obj, buf)
         else:
             root_names = obj._cont.keys()
+
+        idx = 0
         #
         # for CHOICE in the root
         # 3) get choice's name
@@ -1664,6 +1676,7 @@ class PER(ASN1.ASN1Codec):
                       % (obj.get_fullname(), ind._val)))
             cho_name = obj._cont.keys()[ind._val]
             cho = obj._cont[cho_name]
+            idx = ind._val
         #
         # 3bis) get potential padding
         #if self.is_aligned():
@@ -1674,7 +1687,11 @@ class PER(ASN1.ASN1Codec):
         obj._msg.append(cho._msg)
         self._off += cho._msg.bit_len()
         #
-        obj._val = (cho_name, cho._val)
+        if self._DISPLAY_LABEL:
+            obj._val = (cho_name, cho._val)
+        else:
+            obj._val = (idx, cho._val)
+
         # clean up content object
         cho._val = None
         return buf
